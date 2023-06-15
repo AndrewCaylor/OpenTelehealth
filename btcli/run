@@ -1,0 +1,2 @@
+g++ -o simplescan simplescan.cpp -lbluetooth
+./simplescan
