@@ -1,2 +1,2 @@
-g++ -o simplescan simplescan.cpp -lbluetooth
+g++ -o simplescan simplescan.cpp -I. -lbluetooth
 ./simplescan

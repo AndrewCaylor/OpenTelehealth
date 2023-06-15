@@ -21,9 +21,17 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 
+// c++
 #include <string>
+#include <vector>
 #include <iostream>
 
+// my protocol
+#include <bttypes.hpp>
+
+/**
+ * @brief Check if there is data available on the socket
+*/
 bool isready(int socket, bool text = false)
 {
   fd_set rfds;
@@ -53,22 +61,58 @@ bool isready(int socket, bool text = false)
   return false;
 }
 
-std::string readBT(int socket)
+/**
+ * @brief Read bluetooth response from IOT device
+ * 
+*/
+std::string readBTRes(int socket)
 {
-  std::string out = "";
+  std::vector<char> packet = {};
   while (isready(socket))
   {
-    int bytes = 100; //this is arbitrary
+    int bytes = 100; // this is arbitrary
     char buffer[100 + 1] = {0};
 
     read(socket, &buffer, bytes);
-    
-    std::string str(buffer);
 
-    out += str;
+    for (int i = 0; i < 100; i++)
+    {
+      packet.push_back(buffer[i]);
+    }
   }
-  return out;
+
+  if (packet.size() > sizeof(recordRes))
+  {
+    char *buf = new char[sizeof(recordRes)];
+    std::copy(packet.begin(), packet.begin() + (int)sizeof(recordRes), buf);
+
+    recordRes res;
+    memcpy(&res, buf, sizeof(recordRes));
+
+    char *data = new char[packet.size() - sizeof(recordRes)];
+    std::copy(packet.begin() + (int)sizeof(recordRes), packet.end(), data);
+
+    std::cout << res.bitsprecision << "\n";
+    std::cout << res.durationms << "\n";
+    std::cout << res.length << "\n";
+    std::cout << res.samplerate << "\n";
+    return data;
+  }
+
+  return "";
 }
+
+/**
+ * @brief Write bluetooth request to IOT device
+ * 
+*/
+int sendBTReq(int socket, recordReq req){
+  char *buf = new char[sizeof(recordReq)];
+  memcpy(buf, &req, sizeof(recordReq));
+  int status = write(socket, buf, sizeof(recordReq));
+  return status;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -82,7 +126,6 @@ int main(int argc, char **argv)
 
   // allocate a socket
   s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
-  printf("socket num %i\n", s);
   /// create a socket
 
   // set the connection parameters (who to connect to)
@@ -168,20 +211,28 @@ int main(int argc, char **argv)
     printf("press x to exit\n");
     while (true)
     {
-      std::string readData = readBT(s);
+      std::string readData = readBTRes(s);
       if (readData != "")
       {
         std::cout << readData << "\n";
       }
+      else{
+        std::cout << "No data\n";
+      }
 
-      status = write(s, "hello!", 6);
-      if (status == 6)
+      recordReq req;
+      req.bitsprecision = 5;
+      req.durationms = 2;
+      req.samplerate = 3;
+
+      status = sendBTReq(s, req);
+      if (status == sizeof(recordReq))
       {
         printf("Send data to server done\n");
       }
       else
       {
-        printf("failed to write");
+        printf("failed to write\n");
       }
       sleep(1);
     }
