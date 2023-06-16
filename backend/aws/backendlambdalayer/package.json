@@ -1,0 +1,16 @@
+{
+  "name": "lambdalayers",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm install && cp -r node_modules nodejs/"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1399.0",
+    "mysql": "^2.18.1"
+  }
+}
