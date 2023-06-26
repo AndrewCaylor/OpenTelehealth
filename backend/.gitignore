@@ -1,3 +1,5 @@
 node_modules
 nodejs.zip
 nodejs
+build
+.env
