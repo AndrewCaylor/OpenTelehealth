@@ -1,7 +1,10 @@
 
-import axios from "axios";
 import { makeInt16Buffer, sendBufferAsFormData } from "./buffer";
 import * as FormData from "form-data";
+import 'dotenv/config';
+import { Auth } from "./auth";
+import { BeatRequest, RequestType, UploadRequest } from "./types/types";
+import axios from "axios";
 
 console.log("Running");
 
@@ -11,12 +14,19 @@ async function doupload(): Promise<any> {
         data.push(i);
     }
     const buffer = makeInt16Buffer(data, 0, 100);
-    sendBufferAsFormData({ecg: buffer}, "http://localhost:3000/upload")
-    .then((response: any) => {
-        console.log(response.data);
-    })
-    .catch((error: any) => {
-        console.log(error);
+    const request: UploadRequest = {
+        username: "andrewc01@vt.edu",
+        password: "AdminPass1",
+        type: RequestType.NewRecording,
+        ecg: {
+            I: buffer.toString('base64'),
+        },
+        sampleRate: 100,
+        startTime: 0,
+    }
+
+    axios.post("http://localhost:3000/upload", request).then((res) => {
+        console.log(res);
     });
 }
 

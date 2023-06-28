@@ -5,10 +5,11 @@ import { Buffer } from 'buffer';
 
 import { createCheckers } from 'ts-interface-checker';
 import checker from './types/types-ti';
-import { Request, UploadRequest, RequestType } from './types/types';
+import { BeatRequest, UploadRequest, RequestType } from './types/types';
 import { handleUploadRequest } from './upload';
+import { Auth, AuthLevel } from './auth';
 
-const { Request, UploadRequest } = createCheckers(checker);
+const { BeatRequest, UploadRequest } = createCheckers(checker);
 
 const requestInvalidFormat = {
     statusCode: 400,
@@ -17,30 +18,53 @@ const requestInvalidFormat = {
     body: "Invalid request format"
 }
 
+const requestInvalidAuth = {
+    statusCode: 401,
+    headers: {
+    },
+    body: "Invalid credentials"
+}
+
 export const handler = async (event: APIGatewayEvent, context: Context):
     Promise<APIGatewayProxyResult> => {
-    const bodyBuff = Buffer.from(event.body, 'base64');
-    const bodyStr = bodyBuff.toString('utf8');
-    const body = JSON.parse(bodyStr);
+    const body = event.body as unknown;
 
-    console.log(body);
+    console.log(event.body)
 
-    if (Request.test(body)) {
-        const request = body as Request;
+    if (!BeatRequest.test(body)) {
+        return requestInvalidFormat;
+    }
+
+    const request = body as BeatRequest;
+    Auth.handleAuthRequest(request.username, request.password).then((user) => {
+        console.log(user, request);
+        const authLevel = Auth.getAuthLevel(user);
+
+        if (authLevel == AuthLevel.None) {
+            return requestInvalidAuth;
+        }
+
         switch (request.type) {
             case RequestType.NewRecording:
-                if (UploadRequest.test(request)) {
-                    handleUploadRequest(request as UploadRequest);
-                }
-                else {
+                if (!UploadRequest.test(request)) {
                     return requestInvalidFormat;
                 }
+
+                const userSub = user.UserAttributes.find((attr) => attr.Name === "sub").Value;
+                return handleUploadRequest(request as UploadRequest, userSub).then((res) => {
+                    return {
+                        statusCode: 200,
+                        headers: {
+                        },
+                        body: JSON.stringify(res)
+                    }
+                });
                 break;
             default:
                 return requestInvalidFormat;
         }
-    }
-    else {
-        return requestInvalidFormat;
-    }
+    }).catch((err) => {
+        console.log(err);
+        return requestInvalidAuth;
+    });
 };

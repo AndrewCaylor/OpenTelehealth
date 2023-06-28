@@ -9,6 +9,10 @@ interface BufferDict {
     [key: string]: Buffer;
 }
 
+interface B64Dict {
+    [key: string]: string;
+}
+
 export function sendBufferAsFormData(bufferDict: BufferDict, url: string): Promise<any> {
     const formdata = new FormData();
     for (const key in bufferDict) {
@@ -17,7 +21,6 @@ export function sendBufferAsFormData(bufferDict: BufferDict, url: string): Promi
     }
     return axios.post(url, formdata, {
         headers: {
-            "Content-Type": "application/octet-stream",
             "Content-Length": formdata.getLengthSync()
         }
     });

@@ -4,18 +4,16 @@
   "description": "",
   "main": "build/index.js",
   "scripts": {
-    "testbuild": "npm run interface && tsc && jest ./build/tests",
-    "test": "tsc && jest ./build/tests",
-    "interface": "ts-interface-builder types/types.ts --outDir types",
-    "serverbuild": "npm run interface && tsc && node build/server.js",
-    "clientbuild": "npm run interface && tsc && node build/client.js",
-    "server": "tsc && node build/server.js",
-    "client": "tsc && node build/client.js",
+    "test": "jest ./build/tests",
+    "buildtypes": "ts-interface-builder types/types.ts --outDir types",
+    "server": "node build/server.js",
+    "client": "node build/client.js",
     "build": "tsc"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.360.0",
     "aws-sdk": "^2.1399.0",
     "axios": "^1.4.0",
     "dotenv": "^16.3.1",
