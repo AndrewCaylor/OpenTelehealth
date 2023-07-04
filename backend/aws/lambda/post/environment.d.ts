@@ -2,7 +2,7 @@
 declare global {
     namespace NodeJS {
       interface ProcessEnv {
-        ECG_BUCKET: "ecg-data-bucket"
+        ECG_BUCKET: "fitbeatrecordings"
       }
     }
   }

@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "aws-sdk": "^2.1399.0",
-    "mysql": "^2.18.1"
+    "mysql": "^2.18.1",
+    "@aws-sdk/client-cognito-identity-provider": "^3.360.0"
   }
 }

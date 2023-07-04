@@ -6,7 +6,7 @@ import { Buffer } from 'buffer';
 import { createCheckers } from 'ts-interface-checker';
 import checker from './types/types-ti';
 import { BeatRequest, UploadRequest, RequestType } from './types/types';
-import { handleUploadRequest } from './upload';
+import { handleUploadRequest } from './load';
 import { Auth, AuthLevel } from './auth';
 
 const { BeatRequest, UploadRequest } = createCheckers(checker);

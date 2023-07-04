@@ -1,32 +1,37 @@
-import { ECGMeta, UploadRequest } from "./types/types";
+import { DownloadRes, ECG, ECGMeta, UploadRequest } from "./types/types";
 import * as mysql from 'mysql';
 import * as AWS from 'aws-sdk';
 import 'dotenv/config';
+import { readInt16Buffer } from "./buffer";
 
 const s3 = new AWS.S3({ region: 'us-east-1' });
 
 namespace Querys {
-    export const newRecording = `INSERT INTO testdb.recordings 
-VALUES (??, ??, ??)`;
+    export const newRecording = `INSERT INTO testdb.recordings (username, location, locationmeta)
+VALUES (?, ?, ?);`;
 
     export const deleteRecording = `DELETE FROM testdb.recordings
-WHERE location = ??`;
+WHERE location = ?`;
 
 }
 
 namespace Responses {
-    export const success = {
-        statusCode: 200,
-        headers: {
-        },
-        body: "Success"
+    export const success = (body: string) => {
+        return {
+            statusCode: 200,
+            headers: {
+            },
+            body
+        }
     }
 
-    export const failure = {
-        statusCode: 500,
-        headers: {
-        },
-        body: "Failure"
+    export const failure = (body: string) => {
+        return {
+            statusCode: 500,
+            headers: {
+            },
+            body
+        }
     }
 }
 
@@ -57,22 +62,24 @@ function uniqueStr() {
 
 export function handleUploadRequest(req: UploadRequest, sub: string) {
     // combine all the buffers into one
-    let ecgBuf = Buffer.alloc(0);
+    let bufs = [];
     for (const key in req.ecg) {
         const b64 = req.ecg[key as keyof typeof req.ecg];
         const buf = Buffer.from(b64, 'base64');
-        ecgBuf = Buffer.concat([ecgBuf, buf]);
+        bufs.push(buf);
     }
+    const ecgBuf = Buffer.concat(bufs);
 
     const metadata: ECGMeta = {
         sampleRate: req.sampleRate,
         startTime: req.startTime,
-        positions: Object.keys(req.ecg),
+        leads: Object.keys(req.ecg),
+        numSamples: bufs.map((buf) => buf.length / 2),
     };
 
-    // generate a home for the data
+    // generate a unique home for the data
     const location = uniqueStr();
-    const metalocation = location + "m";
+    const metalocation = location + "m"; //ensure that the metadata is stored in a different location
     const connection = makeConnection();
 
     const s3DataPutRes = s3.putObject({
@@ -114,10 +121,52 @@ export function handleUploadRequest(req: UploadRequest, sub: string) {
             }
 
             return Promise.all(toDestroy).then(() => {
-                return Responses.failure;
+                return Responses.failure(JSON.stringify(res));
             });
         }
 
-        return Responses.success;
+        return Responses.success(location);
+    });  
+}
+
+export function handleDownloadRequest(location: string) {
+    const metalocation = location + "m";
+
+    const s3DataPutRes = s3.getObject({
+        Bucket: process.env.ECG_BUCKET,
+        Key: `${location}.bin`,
+    }).promise();
+    const s3MetaPutRes = s3.getObject({
+        Bucket: process.env.ECG_BUCKET,
+        Key: `${metalocation}.json`,
+    }).promise();
+
+    return Promise.all([s3DataPutRes, s3MetaPutRes]).then((res) => {
+        const metadata = JSON.parse(res[1].Body.toString()) as ECGMeta;
+        const allLeadsData = res[0].Body;
+
+        const downloadRes: DownloadRes = {
+            ecg: {},
+            sampleRate: metadata.sampleRate,
+            startTime: metadata.startTime,
+        };
+
+        // split the data into the individual leads
+        let offset = 0;
+        for (let i = 0; i < metadata.leads.length; i++) {
+            const lead = metadata.leads[i];
+            const numSamples = metadata.numSamples[i];
+
+            const leadData = Buffer.from(allLeadsData as Buffer, offset, numSamples * 2);
+            downloadRes.ecg[lead as keyof ECG] = leadData.toString('base64');
+
+            offset += numSamples * 2;
+        }
+
+        return downloadRes;
     });
+}
+
+export function handleSearchRequest() {
+
 }

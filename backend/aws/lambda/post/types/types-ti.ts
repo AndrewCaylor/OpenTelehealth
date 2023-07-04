@@ -31,7 +31,8 @@ export const ECG = t.iface([], {
 });
 
 export const ECGMeta = t.iface([], {
-  "positions": t.array("string"),
+  "leads": t.array("string"),
+  "numSamples": t.array("number"),
   "sampleRate": "number",
   "startTime": "number",
 });
@@ -43,11 +44,18 @@ export const UploadRequest = t.iface(["BeatRequest"], {
   "startTime": "number",
 });
 
+export const DownloadRes = t.iface([], {
+  "ecg": "ECG",
+  "sampleRate": "number",
+  "startTime": "number",
+});
+
 const exportedTypeSuite: t.ITypeSuite = {
   RequestType,
   BeatRequest,
   ECG,
   ECGMeta,
   UploadRequest,
+  DownloadRes,
 };
 export default exportedTypeSuite;

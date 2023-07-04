@@ -46,6 +46,22 @@ export function readFormDataAsBuffer(req: IncomingMessage): Promise<BufferDict> 
     });
 }
 
+export function splitBuffer(buffer: Buffer, lengths: number[]): Buffer[] {
+    const totalsize = lengths.reduce((a, b) => a + b, 0);
+    if (totalsize !== buffer.length) {
+        throw new Error("Lengths do not match buffer size");
+    }
+
+    const res = [];
+    let offset = 0;
+    for (const split of lengths) {
+        const buf = Buffer.from(buffer, offset, split);
+        res.push(buf);
+        offset += split;
+    }
+    return res;
+}
+
 export function makeInt16Buffer(data: number[], min?: number, max?: number): Buffer {
     const datamin = Math.min(...data);
     const datamax = Math.max(...data);

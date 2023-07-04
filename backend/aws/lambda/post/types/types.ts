@@ -26,13 +26,20 @@ export interface ECG {
 }
 
 export interface ECGMeta {
-    positions: string[]; // keyof ECG
+    leads: string[]; // keyof ECG
+    numSamples: number[]; // number of samples in each lead
     sampleRate: number;
     startTime: number;
 }
 
 export interface UploadRequest extends BeatRequest {
     type: RequestType.NewRecording;
+    ecg: ECG;
+    sampleRate: number;
+    startTime: number;
+}
+
+export interface DownloadRes {
     ecg: ECG;
     sampleRate: number;
     startTime: number;
